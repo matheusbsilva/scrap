@@ -7,8 +7,6 @@ import (
   "net/http"
   "net/url"
   "sync"
-  "time"
-  "math/rand"
 )
 
 // scrap -url=https://localhost:8080/api/foo -params=[{'foo': 'bar'}, {'foo': 'buzz'}] -header={'access-token': 'foo'}
@@ -17,24 +15,32 @@ func parseArgToJson(stringValue string, resultMap *[]any) error {
   return json.Unmarshal([]byte(stringValue), resultMap)
 }
 
-func request(baseUrl string, param map[string]any, header map[string]any) {
-  base, err := url.Parse(baseUrl)
-
+func logError(err error) {
   if err != nil {
     fmt.Println(err)
   }
+}
+
+func request(baseUrl string, param map[string]any, header map[string]any) {
+  base, err := url.Parse(baseUrl)
+  logError(err)
+  client := &http.Client{}
+
   q := url.Values{}
   for key, value := range param {
     q.Add(key, value.(string))
   }
 
   base.RawQuery = q.Encode()
+  req, _ := http.NewRequest("GET", base.String(), nil)
 
-  res, err := http.Get(base.String())
-
-  if err != nil {
-    fmt.Println(err)
+  for key, value := range header {
+    req.Header.Add(key, value.(string))
   }
+
+  res, err := client.Do(req)
+
+  logError(err)
 
   fmt.Printf("%s - %d\n", base.String(), res.StatusCode)
   return
